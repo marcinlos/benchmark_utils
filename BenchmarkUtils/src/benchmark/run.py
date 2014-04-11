@@ -5,7 +5,7 @@ Created on Mar 31, 2014
 '''
 from subprocess import Popen, PIPE
 from .data import Results, ResultConverter
-from .util import cartesianProduct
+from .util import cartesian_product
 
 
 class Runner(object):
@@ -27,7 +27,7 @@ class Runner(object):
         self.sink.add(record)
 
     def run(self, *args):
-        for argset in cartesianProduct(*args):
+        for argset in cartesian_product(*args):
             self.printArgs(argset)
             val = self.f(*argset)
             self.add(argset, val)

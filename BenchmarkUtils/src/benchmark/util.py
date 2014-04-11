@@ -5,6 +5,29 @@ Created on Mar 31, 2014
 '''
 
 
+def hasattrs(obj, *attrs):
+    return all(hasattr(obj, attr) for attr in attrs)
+
+
+def equal_attrs(a, b, *attrs):
+    return hasattrs(a, *attrs) and hasattrs(b, *attrs) and \
+        all(getattr(a, attr) == getattr(b, attr) for attr in attrs)
+
+
+def fully_contains(a, b):
+    bb = list(b)
+    for item in a:
+        if item in bb:
+            bb.remove(item)
+        else:
+            return False
+    return True
+
+
+def equal_as_multisets(a, b):
+    return fully_contains(a, b) and fully_contains(b, a)
+
+
 def is_iterable(a):
     return hasattr(a, '__iter__')
 
@@ -20,7 +43,7 @@ class seq(object):
             self.items = []
 
 
-def cartesianProduct(*args):
+def cartesian_product(*args):
     if args:
         first, rest = args[0], args[1:]
         if isinstance(first, seq):
@@ -28,7 +51,7 @@ def cartesianProduct(*args):
         else:
             items = (first,)
         for val in items:
-            for tail in cartesianProduct(*rest):
+            for tail in cartesian_product(*rest):
                 yield (val,) + tail
     else:
         yield ()

@@ -7,6 +7,13 @@ from math import sqrt
 from __builtin__ import min
 
 
+def aggr(f, *args):
+    def wrapper(row):
+        vals = [row[arg] for arg in args]
+        return f(*vals)
+    return wrapper
+
+
 def count(data):
     return len(list(data))
 
@@ -34,11 +41,16 @@ def median(data):
         return 0.5 * (s[n / 2 - 1] + s[n / 2])
 
 
-def aggr(f, *args):
-    def wrapper(row):
-        vals = [row[arg] for arg in args]
-        return f(*vals)
-    return wrapper
+def unique(data):
+    s = set(data)
+    if len(s) > 1:
+        raise ValueError('Element is not unique')
+    else:
+        return iter(s).next()
+
+
+def first(data):
+    return iter(data).next()
 
 
 def Count(col):
@@ -71,3 +83,11 @@ def Max(col):
 
 def Sum(col):
     return aggr(sum, col)
+
+
+def Unique(col):
+    return aggr(unique, col)
+
+
+def First(col):
+    return aggr(first, col)
