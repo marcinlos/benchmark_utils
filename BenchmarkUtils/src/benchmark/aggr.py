@@ -25,6 +25,15 @@ def dev(data):
     return sqrt(var(data))
 
 
+def median(data):
+    s = sorted(data)
+    n = len(s)
+    if n % 2 == 1:
+        return s[n / 2]
+    else:
+        return 0.5 * (s[n / 2 - 1] + s[n / 2])
+
+
 def aggr(f, *args):
     def wrapper(row):
         vals = [row[arg] for arg in args]
@@ -46,6 +55,10 @@ def Var(col):
 
 def Dev(col):
     return aggr(dev, col)
+
+
+def Median(col):
+    return aggr(median, col)
 
 
 def Min(col):
