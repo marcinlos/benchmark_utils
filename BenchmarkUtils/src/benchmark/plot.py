@@ -1,26 +1,29 @@
 
 import matplotlib.pyplot as plt
+from .aggr import Dev
 
 
 class PlotDesc(object):
-    def __init__(self, name, val, props=None, label=None):
-        self.name = name
+    def __init__(self, name, val, props=None, label=None, dev=False):
+        self.name = '_' + name + '_derived'
         self.val = val
         self.props = props
         self.label = label if label else name
+        self.dev = dev
 
 
 class Plot(object):
-
-    slots = ('data', 'params', 'out', 'title', 'ox', 'xlabel', 'ylabel',
-        'cols')
 
     def __init__(self, data, ox=None, out=None, params=None):
         self.data = data
         self.ox = ox
         self.out = out
         self.params = params
+        self.xlabel = None
+        self.ylabel = None
         self.cols = []
+        self.grid = False
+        self.group_by = ()
 
     @property
     def labels(self):
@@ -32,62 +35,79 @@ class Plot(object):
         self.xlabel = xlab
         self.ylabel = ylab
 
-    def plot(self, name, val, props=''):
-        desc = PlotDesc(name, val, props)
+    def series(self, name, val, props='', label=None, dev=False):
+        desc = PlotDesc(name, val, props, label, dev)
         self.cols.append(desc)
 
     def __col_dict(self):
-        return dict((c.name, c.val) for c in self.cols)
+        d = {}
+        for c in self.cols:
+            d[c.name] = c.val
+            if c.dev:
+                d[c.name + '#dev'] = Dev(*c.val.args)
+        return d
 
-    def generate(self):
+    def __ordinary_plot(self, ax, groups, col_vals):
+        for plotKey in sorted(groups.keys()):
+            plotRes = groups[plotKey]
+            rows = plotRes.select(self.ox, **col_vals).orderBy(self.ox)
+            main_axis = rows.col(self.ox)
+            plotParams = dict(zip(self.group_by, plotKey))
+            for c in self.cols:
+                data = rows.col(c.name)
+                label = c.label.format(**plotParams)
+                ax.plot(main_axis, data, c.props, label=label)
+                if c.dev:
+                    dev = rows.col(c.name + '#dev')
+                    ax.errorbar(main_axis, data, yerr=dev, fmt='.')
+            ax.legend(framealpha=0.2)
+
+    def __stacked_plot(self, ax, groups, col_vals):
+        data, labels = [], []
+        for plotKey in sorted(groups.keys()):
+            plotRes = groups[plotKey]
+            rows = plotRes.select(self.ox, **col_vals).orderBy(self.ox)
+            main_axis = rows.col(self.ox)
+            plotParams = dict(zip(self.group_by, plotKey))
+            for c in self.cols:
+                data.append(rows.col(c.name))
+                label = c.label.format(**plotParams)
+                labels.append(label)
+
+        stack = ax.stackplot(main_axis, *data, linewidth=0.5)
+        proxy_rects = [plt.Rectangle((0, 0), 1, 1, fc=pc.get_facecolor()[0])
+            for pc in stack]
+        ax.legend(proxy_rects, labels, framealpha=0.2)
+
+    def __generate_plot(self, key, res, method):
+        params = dict(zip(self.params, key))
+
+        path = self.out.format(**params)
+        col_vals = self.__col_dict()
+
+        fig, ax = plt.subplots(figsize=(12, 7))
+        ax.set_title(self.title.format(**params))
+
+        groups = res.groupBy(*self.group_by)
+        method(ax, groups, col_vals)
+
+        if self.xlabel:
+            ax.set_xlabel(self.xlabel)
+        if self.ylabel:
+            ax.set_ylabel(self.ylabel)
+
+        ax.grid(self.grid)
+        ax.set_ylim(ymin=0)
+        fig.savefig(path, dpi=100)
+        plt.close(fig)
+
+    def __generate_all_plots(self, method):
         groups = self.data.groupBy(*self.params)
         for key, res in groups.iteritems():
-            params = dict(zip(self.params, key))
+            self.__generate_plot(key, res, method)
 
-            path = self.out.format(**params) + '.png'
-            col_vals = self.__col_dict()
-            rows = res.select(self.ox, **col_vals).orderBy(self.ox)
+    def plot(self):
+        self.__generate_all_plots(self.__ordinary_plot)
 
-            main_axis = rows.col(self.ox)
-            data = dict((c.name, rows.col(c.name)) for c in self.cols)
-
-            fig, ax = plt.subplots(figsize=(9, 5))
-
-            ax.set_title(self.title.format(**params))
-            if self.xlabel:
-                ax.set_xlabel(self.xlabel)
-            if self.ylabel:
-                ax.set_ylabel(self.ylabel)
-
-            ax.grid(True)
-
-            for c in self.cols:
-                ax.plot(main_axis, data[c.name], c.props, label=c.label)
-
-            ax.legend(framealpha=0.2)
-            fig.savefig(path, dpi=100)
-            plt.close(fig)
-
-
-def plot(results, pattern, title, xlabel, ylabel, filesBy, main, *cols):
-    groups = results.groupBy(*filesBy)
-    for key, res in groups.iteritems():
-        params = dict(zip(filesBy, key))
-
-        path = pattern.format(**params) + '.png'
-        rows = res.select(main, **dict(cols)).orderBy(main)
-
-        main_axis = rows.col(main)
-        data = dict((c, rows.col(c)) for c, _ in cols)
-        fig, ax = plt.subplots(figsize=(9, 5))
-
-        ax.set_title(title.format(**params))
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
-        ax.grid(True)
-
-        for c, _ in cols:
-            ax.plot(main_axis, data[c], label=c)
-
-        ax.legend(shadow=True)
-        fig.savefig(path, dpi=100)
+    def stacked(self):
+        self.__generate_all_plots(self.__stacked_plot)

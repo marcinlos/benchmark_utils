@@ -11,6 +11,7 @@ def aggr(f, *args):
     def wrapper(row):
         vals = [row[arg] for arg in args]
         return f(*vals)
+    wrapper.args = args
     return wrapper
 
 
@@ -41,7 +42,7 @@ def median(data):
         return 0.5 * (s[n / 2 - 1] + s[n / 2])
 
 
-def unique(data):
+def value(data):
     s = set(data)
     if len(s) > 1:
         raise ValueError('Element is not unique')
@@ -85,8 +86,8 @@ def Sum(col):
     return aggr(sum, col)
 
 
-def Unique(col):
-    return aggr(unique, col)
+def Value(col):
+    return aggr(value, col)
 
 
 def First(col):

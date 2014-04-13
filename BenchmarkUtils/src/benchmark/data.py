@@ -182,6 +182,15 @@ class Results(object):
     def filter(self, pred):
         return Results(self.names, filter(pred, self.rows))
 
+    def where(self, **values):
+        return self.filter(equal(**values))
+
+    def single(self):
+        if len(self) > 1:
+            raise Exception('There are ' + len(self) + ' rows, not 1')
+        else:
+            return self[0]
+
     def __iter__(self):
         return iter(self.rows)
 

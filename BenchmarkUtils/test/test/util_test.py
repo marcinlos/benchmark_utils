@@ -17,7 +17,7 @@ class UtilTest(unittest.TestCase):
 
     def test_string_is_not_iterable(self):
         self.assertFalse(is_iterable('dupa'))
-        
+
     def test_sets_equal_as_multisets(self):
         a = [1, 2, 3]
         b = [2, 3, 1]
