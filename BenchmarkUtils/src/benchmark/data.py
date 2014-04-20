@@ -154,11 +154,13 @@ class Results(object):
         results = []
         for key, vals in groups.items():
             aggregated = mapRecord(vals, derived)
+
             row = dict(zip(cols, key), **vals)
             computed = dict((col, derived[col](row)) for col in new_cols)
             aggregated.update(computed)
 
-            all_vals = key + tuple(aggregated[k] for k in new_cols)
+            rest = tuple(aggregated[k] for k in all_cols if k in aggregated)
+            all_vals = key + rest
             r = Record(all_cols, *all_vals)
             results.append(r)
 
