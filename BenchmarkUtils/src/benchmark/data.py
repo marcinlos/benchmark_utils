@@ -158,7 +158,7 @@ class Results(object):
             computed = dict((col, derived[col](row)) for col in new_cols)
             aggregated.update(computed)
 
-            all_vals = key + tuple(aggregated.values())
+            all_vals = key + tuple(aggregated[k] for k in new_cols)
             r = Record(all_cols, *all_vals)
             results.append(r)
 
