@@ -6,15 +6,19 @@ from benchmark.plot import Plot
 
 fields = [
     ('ver', str), ('n', int), ('procs', int),
-    ('total', float), ('bcast', float), ('scatter', float),
-    ('work', float), ('gather', float)
+    ('total', float), ('scatter_a', float), ('scatter_b', float),
+    ('work', float), ('recv_b', float), ('wait', float), ('send_b', float),
+    ('sync_before_gather', float), ('gather', float)
 ]
 
-res = readResults('data/data', *fields)
+
+res = readResults('data/new_data', *fields)
 
 labels = ('# of processes', 'total time [ms]')
 
-p = Plot(res, 'procs', 'img/times_{ver}_{n}.png')
+img_dir = 'img_new/'
+
+p = Plot(res, 'procs', img_dir + 'times_{ver}_{n}.png')
 p.params = ('ver', 'n')
 p.title = 'Total running time\n({ver}, n={n})'
 p.labels = labels
@@ -23,7 +27,7 @@ p.series('max', Max('total'), '--')
 p.series('avg', Avg('total'), dev=True)
 p.plot()
 
-p = Plot(res, 'procs', 'img/summary_{ver}.png')
+p = Plot(res, 'procs', img_dir + 'summary_{ver}.png')
 p.params = ['ver']
 p.group_by = ['n']
 p.title = 'Total running time\n({ver})'
@@ -31,13 +35,17 @@ p.labels = labels
 p.series('avg', Avg('total'), '.-', label='n={n}')
 p.plot()
 
-p = Plot(res, 'procs', 'img/details_{ver}_{n}.png')
+p = Plot(res, 'procs', img_dir + 'details_{ver}_{n}.png')
 p.params = ('ver', 'n')
 p.title = 'Times of specific operations\n({ver}, n={n})'
 p.labels = labels
 p.series('work', Avg('work'))
-p.series('bcast', Avg('bcast'))
-p.series('scatter', Avg('scatter'))
+p.series('scatter_a', Avg('scatter_a'))
+p.series('scatter_b', Avg('scatter_b'))
+p.series('recv_b', Avg('recv_b'))
+p.series('wait', Avg('wait'))
+#p.series('send_b', Avg('send_b'))
+p.series('sync_before_gather', Avg('sync_before_gather'))
 p.series('gather', Avg('gather'))
 p.stacked()
 
@@ -60,7 +68,7 @@ def serial_fraction(row):
     return (1.0 / speedup(row) - 1.0 / p) / (1 - 1.0 / p)
 
 
-p = Plot(res, 'procs', 'img/speedup_{ver}.png')
+p = Plot(res, 'procs', img_dir + 'speedup_{ver}.png')
 p.params = ['ver']
 p.group_by = ['n']
 p.title = 'Speedup ({ver})'
@@ -68,7 +76,7 @@ p.labels = (labels[0], 'speedup')
 p.series('speedup', speedup, '.-', label='n={n}')
 p.plot()
 
-p = Plot(res, 'procs', 'img/efficiency_{ver}.png')
+p = Plot(res, 'procs', img_dir + 'efficiency_{ver}.png')
 p.params = ['ver']
 p.group_by = ['n']
 p.title = 'Efficiency ({ver})'
@@ -77,7 +85,7 @@ p.series('efficiency', efficiency, '.-', label='n={n}')
 p.plot()
 
 forKf = res.filter(lambda row: row['procs'] > 1)
-p = Plot(forKf, 'procs', 'img/serial_fraction_{ver}.png')
+p = Plot(forKf, 'procs', img_dir + 'serial_fraction_{ver}.png')
 p.params = ['ver']
 p.group_by = ['n']
 p.title = 'Serial fraction ({ver})'
@@ -86,7 +94,7 @@ p.series('sf', serial_fraction, '.-', label='n={n}')
 p.plot()
 
 noSmall = forKf.filter(lambda row: row['n'] > 200)
-p = Plot(noSmall, 'procs', 'img/serial_fraction_filtered_{ver}.png')
+p = Plot(noSmall, 'procs', img_dir + 'serial_fraction_filtered_{ver}.png')
 p.params = ['ver']
 p.group_by = ['n']
 p.title = 'Serial fraction ({ver})'
@@ -95,8 +103,8 @@ p.series('sf', serial_fraction, '.-', label='n={n}')
 p.plot()
 
 # Scaled
-res = readResults('data/data_scaled', *fields)
-p = Plot(res, 'procs', 'img/scaled_times_{ver}_{n}.png')
+res = readResults('data/new_data_scaled', *fields)
+p = Plot(res, 'procs', img_dir + 'scaled_times_{ver}_{n}.png')
 p.params = ('ver', 'n')
 p.title = 'Total running time\n({ver}, n={n})'
 p.labels = labels
@@ -105,7 +113,7 @@ p.series('max', Max('total'), '--')
 p.series('avg', Avg('total'), dev=True)
 p.plot()
 
-p = Plot(res, 'procs', 'img/scaled_summary_{ver}.png')
+p = Plot(res, 'procs', img_dir + 'scaled_summary_{ver}.png')
 p.params = ['ver']
 p.group_by = ['n']
 p.title = 'Total running time\n({ver})'
@@ -113,13 +121,17 @@ p.labels = labels
 p.series('avg', Avg('total'), '.-', label='n={n}')
 p.plot()
 
-p = Plot(res, 'procs', 'img/scaled_details_{ver}_{n}.png')
+p = Plot(res, 'procs', img_dir + 'scaled_details_{ver}_{n}.png')
 p.params = ('ver', 'n')
 p.title = 'Times of specific operations\n({ver}, n={n})'
 p.labels = labels
 p.series('work', Avg('work'))
-p.series('bcast', Avg('bcast'))
-p.series('scatter', Avg('scatter'))
+p.series('scatter_a', Avg('scatter_a'))
+p.series('scatter_b', Avg('scatter_b'))
+p.series('recv_b', Avg('recv_b'))
+p.series('wait', Avg('wait'))
+#p.series('send_b', Avg('send_b'))
+p.series('sync_before_gather', Avg('sync_before_gather'))
 p.series('gather', Avg('gather'))
 p.stacked()
 
@@ -142,7 +154,7 @@ def scaled_serial_fraction(row):
     return (1.0 / scaled_speedup(row)) / (1 - 1.0 / p)
 
 
-p = Plot(res, 'procs', 'img/scaled_speedup_{ver}.png')
+p = Plot(res, 'procs', img_dir + 'scaled_speedup_{ver}.png')
 p.params = ['ver']
 p.group_by = ['n']
 p.title = 'Speedup ({ver})'
@@ -150,7 +162,7 @@ p.labels = (labels[0], 'speedup')
 p.series('speedup', scaled_speedup, '.-', label='n={n}')
 p.plot()
 
-p = Plot(res, 'procs', 'img/scaled_efficiency_{ver}.png')
+p = Plot(res, 'procs', img_dir + 'scaled_efficiency_{ver}.png')
 p.params = ['ver']
 p.group_by = ['n']
 p.title = 'Efficiency ({ver})'
@@ -159,7 +171,7 @@ p.series('efficiency', scaled_efficiency, '.-', label='n={n}')
 p.plot()
 
 forKf = res.filter(lambda row: row['procs'] > 1)
-p = Plot(forKf, 'procs', 'img/scaled_serial_fraction_{ver}.png')
+p = Plot(forKf, 'procs', img_dir + 'scaled_serial_fraction_{ver}.png')
 p.params = ['ver']
 p.group_by = ['n']
 p.title = 'Serial fraction ({ver})'
@@ -168,7 +180,7 @@ p.series('sf', scaled_serial_fraction, '.-', label='n={n}')
 p.plot()
 
 noSmall = forKf.filter(lambda row: row['n'] > 200)
-p = Plot(noSmall, 'procs', 'img/scaled_serial_fraction_filtered_{ver}.png')
+p = Plot(noSmall, 'procs', img_dir + 'scaled_serial_fraction_filtered_{ver}.png')
 p.params = ['ver']
 p.group_by = ['n']
 p.title = 'Serial fraction ({ver})'

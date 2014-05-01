@@ -14,7 +14,7 @@ class PlotDesc(object):
 
 class Plot(object):
 
-    def __init__(self, data, ox=None, out=None, params=None):
+    def __init__(self, data, ox=None, out=None, params=()):
         self.data = data
         self.ox = ox
         self.out = out
@@ -24,6 +24,7 @@ class Plot(object):
         self.cols = []
         self.grid = False
         self.group_by = ()
+        self.title = ''
 
     @property
     def labels(self):
