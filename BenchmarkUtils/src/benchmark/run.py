@@ -4,6 +4,7 @@ Created on Mar 31, 2014
 @author: los
 '''
 from subprocess import Popen, PIPE
+import traceback
 from .data import Results, ResultConverter
 from .util import cartesian_product
 
@@ -46,7 +47,13 @@ def runCmd(cmd, args, converter=lambda x: x):
     command = ' '.join(map(str, parts))
     p = Popen(command, shell=True, stdout=PIPE)
     output = p.stdout.read()
-    return converter(output)
+    try:
+        return converter(output)
+    except Exception as e:
+        print 'Exception while converting command output'
+        traceback.print_exc()
+        print 'For output: "{}"'.format(output)
+        raise
 
 
 def retry(n=5):
@@ -56,8 +63,8 @@ def retry(n=5):
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
-                    print('failed, retrying ({0})...'.format(i))
-                    print e
+                    print('Failed, retrying ({0})...'.format(i + 1))
+                    print 'Reason: {}'.format(e)
             else:
                 raise Exception('Too many failures')
         return decorated

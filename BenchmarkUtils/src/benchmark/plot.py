@@ -1,4 +1,5 @@
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from .aggr import Dev
 
@@ -21,10 +22,14 @@ class Plot(object):
         self.params = params
         self.xlabel = None
         self.ylabel = None
+        self.xscale = 'linear'
+        self.yscale = 'linear'
         self.cols = []
         self.grid = False
         self.group_by = ()
         self.title = ''
+        self.omit_title = False
+        self.rc_params = {}
 
     @property
     def labels(self):
@@ -80,6 +85,10 @@ class Plot(object):
             for pc in stack]
         ax.legend(proxy_rects, labels, framealpha=0.2)
 
+    @property
+    def __title(self):
+        return '' if self.omit_title else self.title
+
     def __generate_plot(self, key, res, method):
         params = dict(zip(self.params, key))
 
@@ -87,7 +96,7 @@ class Plot(object):
         col_vals = self.__col_dict()
 
         fig, ax = plt.subplots(figsize=(12, 7))
-        ax.set_title(self.title.format(**params))
+        ax.set_title(self.__title.format(**params))
 
         groups = res.groupBy(*self.group_by)
         method(ax, groups, col_vals)
@@ -97,18 +106,58 @@ class Plot(object):
         if self.ylabel:
             ax.set_ylabel(self.ylabel)
 
+        ax.set_xscale(self.xscale)
+        ax.set_yscale(self.yscale)
+
         ax.grid(self.grid)
         ax.set_ylim(ymin=0)
         fig.savefig(path, dpi=100)
         plt.close(fig)
 
+    def getRcParams(self):
+        return dict(mpl.rcParams)
+
+    def setRcParams(self, params):
+        mpl.rcParams.update(params)
+
     def __generate_all_plots(self, method):
+        old = self.getRcParams()
+        self.setRcParams(self.rc_params)
+
         groups = self.data.groupBy(*self.params)
         for key, res in groups.iteritems():
             self.__generate_plot(key, res, method)
+
+        self.setRcParams(old)
 
     def plot(self):
         self.__generate_all_plots(self.__ordinary_plot)
 
     def stacked(self):
         self.__generate_all_plots(self.__stacked_plot)
+
+
+class Factory(object):
+
+    def __init__(self):
+        self.ext = '.png'
+        self.output_dir = '.'
+        self.ox = None
+        self.xlabel = None
+        self.ylabel = None
+        self.grid = False
+        self.omit_title = False
+        self.rc_params = {}
+
+    def outPath(self, name):
+        return self.output_dir + '/' + name + self.ext
+
+    def plot(self, data, out, params=()):
+        out_path = self.outPath(out)
+        plot = Plot(data, self.ox, out_path, params)
+        plot.xlabel = self.xlabel
+        plot.ylabel = self.ylabel
+        plot.grid = self.grid
+        plot.omit_title = self.omit_title
+        plot.rc_params.update(self.rc_params)
+        return plot

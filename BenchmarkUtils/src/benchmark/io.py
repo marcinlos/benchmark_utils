@@ -11,7 +11,7 @@ class FileSink(object):
 
     def __init__(self, path, fmt, **params):
         self.path = path
-        self.names = fmt.all
+        self.names = fmt.fields
         self.truncateFile()
 
     def add(self, record):
