@@ -1,6 +1,8 @@
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d as interpolate
+import numpy as np
 from .aggr import Dev
 
 
@@ -20,6 +22,7 @@ class Plot(object):
         self.ox = ox
         self.out = out
         self.params = params
+        self.legend_loc = 'upper right'
         self.xlabel = None
         self.ylabel = None
         self.xscale = 'linear'
@@ -29,7 +32,9 @@ class Plot(object):
         self.group_by = ()
         self.title = ''
         self.omit_title = False
+        self.modifier = None
         self.rc_params = {}
+        self.interpolate = False
 
     @property
     def labels(self):
@@ -53,20 +58,29 @@ class Plot(object):
                 d[c.name + '#dev'] = Dev(*c.val.args)
         return d
 
+    def prepare_data(self, xs, data):
+        if not self.interpolate:
+            return (xs, data)
+        else:
+            xs_new = np.linspace(min(xs), max(xs), 300)
+            data_new = interpolate(xs, data, kind='quadratic')(xs_new)
+            return (xs_new, data_new)
+
     def __ordinary_plot(self, ax, groups, col_vals):
         for plotKey in sorted(groups.keys()):
             plotRes = groups[plotKey]
             rows = plotRes.select(self.ox, **col_vals).orderBy(self.ox)
-            main_axis = rows.col(self.ox)
             plotParams = dict(zip(self.group_by, plotKey))
             for c in self.cols:
+                main_axis = rows.col(self.ox)
                 data = rows.col(c.name)
+                (main_axis, data) = self.prepare_data(main_axis, data)
                 label = c.label.format(**plotParams)
                 ax.plot(main_axis, data, c.props, label=label)
                 if c.dev:
                     dev = rows.col(c.name + '#dev')
                     ax.errorbar(main_axis, data, yerr=dev, fmt='.')
-            ax.legend(framealpha=0.2)
+            ax.legend(loc=self.legend_loc)
 
     def __stacked_plot(self, ax, groups, col_vals):
         data, labels = [], []
@@ -111,6 +125,10 @@ class Plot(object):
 
         ax.grid(self.grid)
         ax.set_ylim(ymin=0)
+
+        if self.modifier is not None:
+            self.modifier(fig, ax, **params)
+
         fig.savefig(path, dpi=100)
         plt.close(fig)
 
